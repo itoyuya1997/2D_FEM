@@ -1,15 +1,15 @@
 import numpy as np
 import os
 
-modelid = 1     #0:square mesh,1:flexible mesh
+modelid = 0     #0:square mesh,1:flexible mesh
 
 ### Set target area ###
 ## add model---fix make var.in,mk_vtk.py ##
 if  modelid == 0:
-    area_x = 50.0
-    area_z = 10.0
+    area_x = 10.0
+    area_z = 5.0
 
-    nx =  20
+    nx = 10
     nz =  5
     dof = 2
 
@@ -47,19 +47,15 @@ if modelid == 0:
     for k in range(len(zg)):
         for i in range(len(xg)):
             dofx,dofz = 1,1
-            dofx_static,dofz_static = 1,1
             if k == len(zg)-1:
                 dofz = 0
-                dofz_static = 0
             if i == 0:
-                dofz = 0
-                dofx_static = 0
+                dofx = 0
             if i == len(xg)-1:
-                dofz = 0
-                dofx_static = 0
+                dofx = 0
 
             node[i,k] = inode
-            node_lines += [ "{} {} {} {} {} {} {}\n".format(inode,xg[i],zg[k],dofx,dofz,dofx_static,dofz_static) ]
+            node_lines += [ "{} {} {} {} {}\n".format(inode,xg[i],zg[k],dofx,dofz) ]
             inode += 1
 
 elif modelid == 1:
@@ -81,11 +77,8 @@ ielem = 0
 
 if modelid == 0:
     for k in range(nz):
-        im = 1
         for i in range(nx):
-            im = 1
-            if k <= 1 and i >= int(nx/2):
-                im = 0
+            im = 0
 
             style = "2d9solid"
 
@@ -116,26 +109,26 @@ elif modelid == 1:
             ielem += 1
 
 
-for i in range(nx):
-    style = "1d3input"
-    im = 1
+    for i in range(nx):
+        style = "1d3input"
+        im = 1
 
-    param_line = "{} {} {} ".format(ielem,style,im)
-    style_line = "{} {} {} ".format(node[2*i,-1],node[2*i+2,-1],node[2*i+1,-1])
+        param_line = "{} {} {} ".format(ielem,style,im)
+        style_line = "{} {} {} ".format(node[2*i,-1],node[2*i+2,-1],node[2*i+1,-1])
 
-    element_lines += [param_line + style_line + "\n"]
-    ielem += 1
+        element_lines += [param_line + style_line + "\n"]
+        ielem += 1
 
 
-for k in range(len(zg)):     #connected element
-    style = "connect"
-    im = -1
+    for k in range(len(zg)):     #connected element
+        style = "connect"
+        im = -1
 
-    param_line = "{} {} {} ".format(ielem,style,im)
-    style_line = "{} {}".format(node[0,k],node[2*nx,k])
+        param_line = "{} {} {} ".format(ielem,style,im)
+        style_line = "{} {}".format(node[0,k],node[2*nx,k])
 
-    element_lines += [param_line + style_line + "\n"]
-    ielem += 1
+        element_lines += [param_line + style_line + "\n"]
+        ielem += 1
 
 
 nnode = inode       #number of nodes
@@ -144,7 +137,7 @@ nelem = ielem       #number of elements
 
 ### Set material ###
 material_lines = []
-material_lines += ["{} {} {} {} {} \n".format(0,"vs_vp_rho",80.0,1500.0,1750.0)]
+material_lines += ["{} {} {} {} {} \n".format(0,"vs_vp_rho",0.0,1500.0,1750.0)]
 material_lines += ["{} {} {} {} {} \n".format(1,"vs_vp_rho",200.0,1500.0,1750.0)]
 
 nmaterial = len(material_lines)

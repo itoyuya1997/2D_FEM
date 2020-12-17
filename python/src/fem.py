@@ -112,7 +112,7 @@ class Fem():
             node.um = np.copy(node.u)
 
         self._self_gravity_cg(full=False)
-        self._self_gravity_cg(full=True)
+        # self._self_gravity_cg(full=True)
 
         for node in self.nodes:
             node.u0 = np.copy(node.u)

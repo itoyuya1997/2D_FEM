@@ -24,7 +24,7 @@ fem.set_output(outputs)
 # plot_model.plot_mesh(fem)
 
 ## --- Define input wave --- ##
-fsamp = 4000
+fsamp = 5000
 duration = 2.0
 
 tim,dt = np.linspace(0,duration,int(fsamp*duration),endpoint=False,retstep=True)
@@ -35,7 +35,7 @@ ntim = len(tim)
 ax = plot_model.plot_mesh_update_init()
 ## --- Static deformation --- ##
 fem.self_gravity()
-plot_model.plot_mesh_update(ax,fem,200.)
+plot_model.plot_mesh_update(ax,fem,10.)
 
 ## --- Prepare time solver --- ##
 fem.update_init(dt)
@@ -50,14 +50,16 @@ output_dispx = np.zeros((ntim,fem.output_nnode))
 output_dispz = np.zeros((ntim,fem.output_nnode))
 
 for it in range(len(tim)):
-    acc0 = np.array([0.0,0.0])
-    vel0 = np.array([wave_vel[it],0.0])
+    theta = np.deg2rad(10.0)
+    acc0 = np.array([9.8*np.sin(theta),9.8*np.cos(theta)])
+    # acc0 = np.array([0.0,0.0])
+    # vel0 = np.array([wave_vel[it],0.0])
 
-    fem.update_time(acc0,vel0,input_wave=True,FD=True)
-    # fem.update_time(acc0,vel0,input_wave=True)
+    fem.update_time(acc0,FD=True)
+    # fem.update_time(acc0)
 
     output_dispx[it,:] = [node.u[0]-node.u0[0] for node in fem.output_nodes]
-    output_dispx[it,:] = [node.u[1]-node.u0[1] for node in fem.output_nodes]
+    output_dispz[it,:] = [node.u[1]-node.u0[1] for node in fem.output_nodes]
     output_velx[it,:] = [node.v[0] for node in fem.output_nodes]     #axis [0]:x [1]:y
     output_velz[it,:] = [node.v[1] for node in fem.output_nodes]
     output_strainxx[it,:] = [element.strain[0] for element in fem.output_elements]        #axis [0]:xx [1]:zz [2]:xz
@@ -65,12 +67,13 @@ for it in range(len(tim)):
     output_strainxz[it,:] = [element.strain[2] for element in fem.output_elements]
 
     if it%10 == 0:
-        plot_model.plot_mesh_update(ax,fem,200.)
-        print(it,"t=",it*dt,output_dispx[it,:])
+        plot_model.plot_mesh_update(ax,fem,10.)
+        # print(it,"t=",it*dt,output_dispx[it,:])
+        print(it,"t=",it*dt,output_dispx[it,0],output_dispz[it,0])
         plt.savefig(dir+"/fig/img_"+str(it)+".png")
 
 
-plot_model.plot_mesh_update(ax,fem,200.,fin=True)
+plot_model.plot_mesh_update(ax,fem,10.,fin=True)
 
 ## --- Write output file --- ##
 # with open("input/var.in","a") as f:

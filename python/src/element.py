@@ -10,6 +10,9 @@ class Element:
         self.material_id = material_id
         self.gravity = 9.8
 
+        # inclined angle
+
+
         self.set_style(style)
 
     def print(self):
@@ -151,7 +154,7 @@ class Element:
                     det,_ = mk_jacobi(self.xn,self.dnxz[i,j,:,:])
                     detJ = self.wxz[i,j]*det
                     V += detJ
-                    self.force += self.Nxz[i,j,1,:]*detJ * self.gravity
+                    # self.force += self.Nxz[i,j,1,:]*detJ * self.gravity
 
             self.force = self.force * self.mass/V
 
@@ -313,8 +316,8 @@ def mk_b(dof,nnode,xn,dn):
 
 # ---------------------------------------------------------
 def Hencky_stress(dof,nnode,xn,dn,D,u):     #キルヒホッフ応力tau,Kマト算定
-    strain = Euler_log_strain(nnode,xn,dn,u)
-    # strain = micro_strain(nnode,xn,dn,u)
+    # strain = Euler_log_strain(nnode,xn,dn,u)
+    strain = micro_strain(nnode,xn,dn,u)
     strain_vector = np.array([strain[0,0],strain[1,1],strain[0,1]+strain[1,0]])
 
     K_stress = D @ strain_vector
