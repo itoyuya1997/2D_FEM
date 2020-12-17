@@ -35,7 +35,7 @@ ntim = len(tim)
 ax = plot_model.plot_mesh_update_init()
 ## --- Static deformation --- ##
 fem.self_gravity()
-plot_model.plot_mesh_update(ax,fem,1.)
+plot_model.plot_mesh_update(ax,fem,10.)
 
 ## --- Prepare time solver --- ##
 fem.update_init(dt)
@@ -50,7 +50,7 @@ output_dispx = np.zeros((ntim,fem.output_nnode))
 output_dispz = np.zeros((ntim,fem.output_nnode))
 
 for it in range(len(tim)):
-    theta = np.deg2rad(10.0)
+    theta = np.deg2rad(1.0)
     acc0 = np.array([9.8*np.sin(theta),9.8*np.cos(theta)])
     # acc0 = np.array([0.0,0.0])
     # vel0 = np.array([wave_vel[it],0.0])
@@ -67,13 +67,13 @@ for it in range(len(tim)):
     output_strainxz[it,:] = [element.strain[2] for element in fem.output_elements]
 
     if it%10 == 0:
-        plot_model.plot_mesh_update(ax,fem,1.)
+        plot_model.plot_mesh_update(ax,fem,10.)
         # print(it,"t=",it*dt,output_dispx[it,:])
         print(it,"t=",it*dt,output_dispx[it,0],output_dispz[it,0])
         plt.savefig(dir+"/fig/img_"+str(it)+".png")
 
 
-plot_model.plot_mesh_update(ax,fem,1.,fin=True)
+plot_model.plot_mesh_update(ax,fem,10.,fin=True)
 
 ## --- Write output file --- ##
 # with open("input/var.in","a") as f:
