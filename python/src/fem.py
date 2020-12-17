@@ -112,7 +112,7 @@ class Fem():
             node.um = np.copy(node.u)
 
         self._self_gravity_cg(full=False)
-        # self._self_gravity_cg(full=True)
+        self._self_gravity_cg(full=True)
 
         for node in self.nodes:
             node.u0 = np.copy(node.u)
@@ -202,6 +202,92 @@ class Fem():
             if it%100 == 0:
                 print(" (self gravity process .. )",it,self.nodes[0].u[1],rr1)
 
+    # ---------------------------------------
+    def _self_gravity_cg_FD(self,full=True):
+        if full:    # Calculate both components
+            id = 0
+        else:       # Calculate only vertical component
+            id = 1
+
+        ### CG Method ###
+        for node in self.nodes:
+            node.force = np.zeros(node.dof,dtype=np.float64)
+        for element in self.elements:
+            element.mk_B_stress()
+        for node in self.nodes:
+            for i in range(id,node.dof):
+                if node.freedom[i] == 0:
+                    node._ur[i] = 0.0
+                else:
+                    node._ur[i] = node.static_force[i] - node.force[i]
+        for element in self.connected_elements:         # periodic boundary condition
+            u = np.zeros_like(element.nodes[0]._ur)
+            for node in element.nodes:
+                u += node._ur
+            for node in element.nodes:
+                node._ur = u/len(element.nodes)
+        for node in self.nodes:
+            node._up = np.copy(node._ur)
+        for element in self.elements:
+            element._up = ()
+            for node in element.nodes:
+                element._up += (node._up.view(),)
+
+        for it in range(10*self.nnode):
+            ## y = Ap
+            for node in self.nodes:
+                node.force = np.zeros(node.dof,dtype=np.float64)
+            for element in self.elements:
+                # element.mk_ku_u(element._up)
+                element.set_xn_u(element._up)
+                element.mk_B_stress_u(element._up)
+            for node in self.nodes:
+                node._uy = node.force
+
+            ## correction boundary condition
+            for node in self.nodes:
+                for i in range(id,node.dof):
+                    if node.freedom[i] == 0:
+                        node._uy[i] = 0.0
+            for element in self.connected_elements:
+                u = np.zeros_like(element.nodes[0]._uy)
+                for node in element.nodes:
+                    u += node._uy
+                for node in element.nodes:
+                    node._uy = u/len(element.nodes)
+
+            ## alpha = rr/py
+            rr,py = 0.0,0.0
+            for node in self.nodes:
+                rr += node._ur @ node._ur
+                py += node._up @ node._uy
+            alpha = rr/py
+
+            ## x = x + alpha*p
+            rr1 = 0.0
+            for node in self.nodes:
+                for i in range(id,node.dof):
+                    if node.freedom[i] == 0:
+                        pass
+                    else:
+                        node.u[i] += alpha*node._up[i]
+                        node._ur[i] -= alpha*node._uy[i]
+                rr1 += node._ur @ node._ur
+
+            if rr1 < 1.e-10:
+                break
+
+            ## p = r + beta*p
+            beta = rr1/rr
+            for node in self.nodes:
+                for i in range(id,node.dof):
+                    if node.freedom[i] == 0:
+                        pass
+                    else:
+                        node._up[i] = node._ur[i] + beta*node._up[i]
+
+            if it%100 == 0:
+                print(" (self gravity process .. )",it,self.nodes[0].u[1],rr1)
 
     # ======================================================================= #
     def update_init(self,dt):

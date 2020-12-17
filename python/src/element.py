@@ -54,6 +54,12 @@ class Element:
             # self.xn[i,0] = self.nodes[i].xyz[0]
             # self.xn[i,1] = self.nodes[i].xyz[1]
 
+    def set_xn_u(self,u):
+        self.xn = np.empty([self.nnode,2],dtype=np.float64)
+        for i in range(self.nnode):
+            self.xn[i,0] = self.nodes[i].xyz[0] + u[i][0] # mesh update
+            self.xn[i,1] = self.nodes[i].xyz[1] + u[i][1] # mesh update
+
     # ---------------------------------------------------------
     # ---------------------------------------------------------
     def mk_local_matrix_init(self,dof):
@@ -154,7 +160,7 @@ class Element:
                     det,_ = mk_jacobi(self.xn,self.dnxz[i,j,:,:])
                     detJ = self.wxz[i,j]*det
                     V += detJ
-                    # self.force += self.Nxz[i,j,1,:]*detJ * self.gravity
+                    self.force += self.Nxz[i,j,1,:]*detJ * self.gravity
 
             self.force = self.force * self.mass/V
 

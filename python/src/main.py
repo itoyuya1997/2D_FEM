@@ -51,7 +51,7 @@ output_dispz = np.zeros((ntim,fem.output_nnode))
 
 for it in range(len(tim)):
     theta = np.deg2rad(1.0)
-    acc0 = np.array([9.8*np.sin(theta),9.8*np.cos(theta)])
+    acc0 = np.array([9.8*np.sin(theta),9.8*(1.0-np.cos(theta))])
     # acc0 = np.array([0.0,0.0])
     # vel0 = np.array([wave_vel[it],0.0])
 
