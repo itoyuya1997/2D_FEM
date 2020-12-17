@@ -239,7 +239,7 @@ class Fem():
                 node.force = np.zeros(node.dof,dtype=np.float64)
             for element in self.elements:
                 # element.mk_ku_u(element._up)
-                element.set_xn_u(element._up)
+                element.set_xn()
                 element.mk_B_stress_u(element._up)
             for node in self.nodes:
                 node._uy = node.force
