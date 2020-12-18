@@ -24,8 +24,8 @@ fem.set_output(outputs)
 # plot_model.plot_mesh(fem)
 
 ## --- Define input wave --- ##
-fsamp = 5000
-duration = 2.0
+fsamp = 800
+duration = 15.0
 
 tim,dt = np.linspace(0,duration,int(fsamp*duration),endpoint=False,retstep=True)
 wave_acc = input_wave.tapered_sin(tim,fp=2.5,taper=0.2,duration=2.0,amp=2.0)
@@ -66,7 +66,7 @@ for it in range(len(tim)):
     output_strainzz[it,:] = [element.strain[1] for element in fem.output_elements]
     output_strainxz[it,:] = [element.strain[2] for element in fem.output_elements]
 
-    if it%10 == 0:
+    if it%100 == 0:
         plot_model.plot_mesh_update(ax,fem,10.)
         # print(it,"t=",it*dt,output_dispx[it,:])
         print(it,"t=",it*dt,output_dispx[it,0],output_dispz[it,0])
@@ -109,7 +109,5 @@ print ("elapsed_time: {0}".format(elapsed_time) + "[sec]")
 
 # ## Output result ##
 plt.figure()
-plt.plot(tim,wave_vel)
-plt.plot(tim,output_velx[:,0])
-plt.plot(tim,output_velx[:,1])
+plt.plot(tim,output_dispz[:,0])
 plt.show()

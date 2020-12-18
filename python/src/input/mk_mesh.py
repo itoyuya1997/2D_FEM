@@ -9,8 +9,8 @@ if  modelid == 0:
     area_x = 10.0
     area_z = 5.0
 
-    nx = 10
-    nz =  5
+    nx = 2
+    nz = 1
     dof = 2
 
     xg = np.linspace(0,area_x,2*nx+1,endpoint=True)
