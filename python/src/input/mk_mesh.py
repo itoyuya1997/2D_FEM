@@ -6,11 +6,11 @@ modelid = 0     #0:square mesh,1:flexible mesh
 ### Set target area ###
 ## add model---fix make var.in,mk_vtk.py ##
 if  modelid == 0:
-    area_x = 10.0
+    area_x =5.0
     area_z = 5.0
 
-    nx = 2
-    nz = 1
+    nx = 5
+    nz = 5
     dof = 2
 
     xg = np.linspace(0,area_x,2*nx+1,endpoint=True)
@@ -37,11 +37,21 @@ elif modelid == 1:
     for k in range(2*nz1+1,2*nz+1):
         xg[:,k] = np.copy(xg[:,2*nz1])
 
+elif  modelid == 2:
+    area_x = 10
+    area_z = 10
+
+    nx = 10
+    nz = 10
+    dof = 2
+
+    xg = np.linspace(0,area_x,2*nx+1,endpoint=True)
+    zg = np.linspace(0,area_z,2*nz+1,endpoint=True)
 
 ### Set node ###
 inode = 0
 
-if modelid == 0:
+if modelid == 0 or modelid == 2:
     node = np.empty([len(xg),len(zg)],dtype=np.int32)       #node_idを振った配列(転置)
     node_lines = []
     for k in range(len(zg)):
@@ -75,7 +85,7 @@ elif modelid == 1:
 element_lines = []
 ielem = 0
 
-if modelid == 0:
+if modelid == 0 or modelid == 2:
     for k in range(nz):
         for i in range(nx):
             im = 0
@@ -168,7 +178,7 @@ with open("output.in","w") as f:
     f.writelines(output_element_lines)
 
 
-with open("var.in","w") as f:       #save var, depend on target area
+with open("var.txt","w") as f:       #save var, depend on target area
     f.write("{} {}\n".format(modelid,"modelid"))
     f.write("{} {} {} {}\n".format(area_x,area_z,"area_x","area_z"))
     f.write("{} {} {} {}\n".format(nx,nz,"nx","nz"))

@@ -21,10 +21,10 @@ outputs = io_data.input_outputs("input/output.in")
 ## --- FEM Set up --- ##
 fem.set_init()
 fem.set_output(outputs)
-# plot_model.plot_mesh(fem)
+plot_model.plot_mesh(fem)
 
 ## --- Define input wave --- ##
-fsamp = 800
+fsamp = 4000
 duration = 15.0
 
 tim,dt = np.linspace(0,duration,int(fsamp*duration),endpoint=False,retstep=True)
@@ -35,7 +35,7 @@ ntim = len(tim)
 ax = plot_model.plot_mesh_update_init()
 ## --- Static deformation --- ##
 fem.self_gravity()
-plot_model.plot_mesh_update(ax,fem,10.)
+# plot_model.plot_mesh_update(ax,fem,1.)
 
 ## --- Prepare time solver --- ##
 fem.update_init(dt)
@@ -50,6 +50,7 @@ output_dispx = np.zeros((ntim,fem.output_nnode))
 output_dispz = np.zeros((ntim,fem.output_nnode))
 
 for it in range(len(tim)):
+    wavename = "static"
     theta = np.deg2rad(1.0)
     acc0 = np.array([9.8*np.sin(theta),9.8*(1.0-np.cos(theta))])
     # acc0 = np.array([0.0,0.0])
@@ -66,21 +67,21 @@ for it in range(len(tim)):
     output_strainzz[it,:] = [element.strain[1] for element in fem.output_elements]
     output_strainxz[it,:] = [element.strain[2] for element in fem.output_elements]
 
-    if it%100 == 0:
-        plot_model.plot_mesh_update(ax,fem,10.)
+    if it%200 == 0:
+        plot_model.plot_mesh_update(ax,fem,1.)
         # print(it,"t=",it*dt,output_dispx[it,:])
         print(it,"t=",it*dt,output_dispx[it,0],output_dispz[it,0])
-        plt.savefig(dir+"/fig/img_"+str(it)+".png")
+        plt.savefig(dir+"/fig/img_"+str(it).zfill(7)+".png")
 
 
-plot_model.plot_mesh_update(ax,fem,10.,fin=True)
+plot_model.plot_mesh_update(ax,fem,1.,fin=True)
 
 ## --- Write output file --- ##
-# with open("input/var.in","a") as f:
-#     f.write("{} {} {} {}\n".format("inputwave",fsamp,duration,)
+with open("input/var.txt","a") as f:
+    f.write("{} {} {} {}\n".format("inputwave",wavename,fsamp,duration))
 shutil.copy("input/mesh.in",dir)        #movefile to output folder
 shutil.copy("input/output.in",dir)
-shutil.copy("input/var.in",dir)
+shutil.copy("input/var.txt",dir)
 
 output_tim = np.arange(ntim).reshape(ntim,1)
 
