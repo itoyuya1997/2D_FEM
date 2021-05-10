@@ -1,57 +1,221 @@
 import numpy as np
 import os
 
-area_x = 10.0
-area_z = 5.0
+modelid = 2     #0:square mesh,1:flexible mesh
 
-nx = 5
-nz = 5
-dof = 2
+### Set target area ###
+## add model---fix make var.in,mk_vtk.py ##
+if  modelid == 0:
+    area_x = 50.0
+    area_z = 10.0
 
-xg = np.linspace(0,area_x,2*nx+1,endpoint=True)
-zg = np.linspace(0,area_z,2*nz+1,endpoint=True)
+    nx =  20
+    nz =  5
+    dof = 2
+
+    xg = np.linspace(0,area_x,2*nx+1,endpoint=True)
+    zg = np.linspace(0,area_z,2*nz+1,endpoint=True)
+
+elif modelid == 1:
+    area_x = 50.0
+    area_z = 5.0
+
+    nx1,nx2 = 1, 4
+    nz1,nz2 = 1, 1
+    nx =  nx1 + nx2 + nx1
+    nz =  nz1 + nz2
+    dof = 2
+
+    zg = np.linspace(0,area_z,2*nz+1,endpoint=True)
+    xg = np.empty([2*nx+1,2*nz+1])       #node coordinate
+
+    for k in range(2*nz1+1):
+        xg[:2*nx1,k] = np.linspace(0,10+10/(len(zg)-1)*k,2*nx1,endpoint=False)
+        xg[2*nx1:2*(nx1+nx2),k] = np.linspace(10+10/(len(zg)-1)*k,area_x-(10+10/(len(zg)-1)*k),2*nx2,endpoint=False)
+        xg[2*(nx1+nx2):,k] = np.linspace(area_x-(10+10/(len(zg)-1)*k),area_x,2*nx1+1,endpoint=True)      #傾斜部分
+
+    for k in range(2*nz1+1,2*nz+1):
+        xg[:,k] = np.copy(xg[:,2*nz1])
+
+
+elif modelid == 2 or modelid == 3 or modelid == 4:      #Maihama-2model 2:W.L.-0.0 3:W.L.-3.0 4:W.L.-1.5
+    area_x = 210
+    area_z = 12
+    dof = 2
+
+    nza = 4
+    nzb = 2
+    nzc = 1
+
+    nz = nza+nzb+nzc
+
+    nx = 42
+    nxb0 = 12
+    nxb1 = 25
+    nxb2 = 5
+    nxc0 = 12
+    nxc1 = 25
+    nxc2 = 5
+
+    zg = np.append(np.linspace(0,6,2*nza,endpoint=False),np.linspace(6,12,2*(nzb+nzc)+1,endpoint=True))
+    xg = np.empty([2*nx+1,2*nz+1])       #node coordinate
+
+    for k in range(2*nza):        #0-6
+        xg[:,k] = np.linspace(0,area_x,2*nx+1,endpoint=True)
+    for k in range(2*nza,2*(nza+nzb)):      #6-10
+        xg[:2*nxb0,k] = np.linspace(0,60+10/(2*nzb)*(k-2*nza),2*nxb0,endpoint=False)
+        xg[2*nxb0:2*(nxb0+nxb1),k] = np.linspace(60+10/(2*nzb)*(k-2*nza),185-10/(2*nzb)*(k-2*nza),2*nxb1,endpoint=False)
+        xg[2*(nxb0+nxb1):,k] = np.linspace(185-10/(2*nzb)*(k-2*nza),area_x,2*nxb2+1,endpoint=True)
+    for k in range(2*(nza+nzb),2*(nza+nzb+nzc)+1):        #10-12
+        xg[:2*nxc0,k] = np.linspace(0,70,2*nxc0,endpoint=False)
+        xg[2*nxc0:2*(nxc0+nxc1),k] = np.linspace(70,175,2*nxc1,endpoint=False)
+        xg[2*(nxc0+nxc1):,k] = np.linspace(175,area_x,2*nxc2+1,endpoint=True)
 
 
 ### Set node ###
-node = np.empty([len(xg),len(zg)],dtype=np.int32)       #node_idを振った配列(転置)
-node_lines = []
-
 inode = 0
-for k in range(len(zg)):
-    for i in range(len(xg)):
-        dofx,dofz = 1,1
-        if k == len(zg)-1:
-            dofz = 0
-        # if i == 0:
-        #     dofx = 0
-        # if i == len(xg)-1:
-        #     dofx = 0
 
-        node[i,k] = inode
-        node_lines += [ "{} {} {} {} {}\n".format(inode,xg[i],zg[k],dofx,dofz)]
-        inode += 1
+if modelid == 0:
+    node = np.empty([len(xg),len(zg)],dtype=np.int32)       #node_idを振った配列(転置)
+    node_lines = []
+    for k in range(len(zg)):
+        for i in range(len(xg)):
+            dofx,dofz = 1,1
+            dofx_static,dofz_static = 1,1
+            if k == len(zg)-1:
+                dofz = 0
+                dofz_static = 0
+            if i == 0:
+                dofz = 0
+                dofx_static = 0
+            if i == len(xg)-1:
+                dofz = 0
+                dofx_static = 0
 
+            node[i,k] = inode
+            node_lines += [ "{} {} {} {} {} {} {}\n".format(inode,xg[i],zg[k],dofx,dofz,dofx_static,dofz_static) ]
+            inode += 1
+
+elif modelid == 1 or modelid == 2 or modelid == 3 or modelid == 4:
+    node = np.empty([len(xg[:,0]),len(zg)],dtype=np.int32)       #node_idを振った配列(転置)
+    node_lines = []
+    for k in range(len(zg)):
+        for i in range(len(xg[:,0])):
+            dofx,dofz = 1,1
+            if k == len(zg)-1:
+                dofz = 0
+
+            node[i,k] = inode
+            node_lines += [ "{} {} {} {} {}\n".format(inode,xg[i,k],zg[k],dofx,dofz) ]
+            inode += 1
 
 ### Set element ###
 element_lines = []
-
 ielem = 0
-for k in range(nz):
-    for i in range(nx):
+
+if modelid == 0:
+    for k in range(nz):
         im = 1
-        if k <= 1:
-            if i >= 1 and i <=3:
+        for i in range(nx):
+            im = 1
+            if k <= 1 and i >= int(nx/2):
                 im = 0
 
-        style = "2d9solid"
+            style = "2d9solid"
 
-        param_line = "{} {} {} ".format(ielem,style,im)
-        style_line = "{} {} {} {} {} {} {} {} {}".format(node[2*i,2*k],node[2*i+2,2*k],node[2*i+2,2*k+2],node[2*i,2*k+2],
-                                                         node[2*i+1,2*k],node[2*i+2,2*k+1],node[2*i+1,2*k+2],node[2*i,2*k+1],
-                                                         node[2*i+1,2*k+1])
+            param_line = "{} {} {} ".format(ielem,style,im)
+            style_line = "{} {} {} {} {} {} {} {} {}".format(node[2*i,2*k],node[2*i+2,2*k],node[2*i+2,2*k+2],node[2*i,2*k+2],
+                                                             node[2*i+1,2*k],node[2*i+2,2*k+1],node[2*i+1,2*k+2],node[2*i,2*k+1],
+                                                             node[2*i+1,2*k+1])
 
-        element_lines += [param_line + style_line + "\n"]
-        ielem += 1
+            element_lines += [param_line + style_line + "\n"]
+            ielem += 1
+
+elif modelid == 1:
+    for k in range(nz):
+        im = 1
+        for i in range(nx):
+            im = 1
+            if k < nz1 and nx1 <= i < nx1+nx2:
+                im = 0
+
+            style = "2d9solid"
+
+            param_line = "{} {} {} ".format(ielem,style,im)
+            style_line = "{} {} {} {} {} {} {} {} {}".format(node[2*i,2*k],node[2*i+2,2*k],node[2*i+2,2*k+2],node[2*i,2*k+2],
+                                                             node[2*i+1,2*k],node[2*i+2,2*k+1],node[2*i+1,2*k+2],node[2*i,2*k+1],
+                                                             node[2*i+1,2*k+1])
+
+            element_lines += [param_line + style_line + "\n"]
+            ielem += 1
+
+elif modelid == 2:
+    for k in range(nz):
+        im = 0
+        for i in range(nx):
+            im = 0
+            if 0 <= k < 2:
+                im = 4
+            if 4 <= k < 6 and (0 <= i < 12 or 37 <= i < 42):
+                im = 2
+            if 6 <= k < 7:
+                im = 1
+
+            style = "2d9solid"
+
+            param_line = "{} {} {} ".format(ielem,style,im)
+            style_line = "{} {} {} {} {} {} {} {} {}".format(node[2*i,2*k],node[2*i+2,2*k],node[2*i+2,2*k+2],node[2*i,2*k+2],
+                                                             node[2*i+1,2*k],node[2*i+2,2*k+1],node[2*i+1,2*k+2],node[2*i,2*k+1],
+                                                             node[2*i+1,2*k+1])
+
+            element_lines += [param_line + style_line + "\n"]
+            ielem += 1
+
+elif modelid == 3:
+    for k in range(nz):
+        im = 0
+        for i in range(nx):
+            im = 0
+            if 0 <= k < 2:
+                im = 3
+            if 4 <= k < 6 and (0 <= i < 12 or 37 <= i < 42):
+                im = 2
+            if 6 <= k < 7:
+                im = 1
+
+            style = "2d9solid"
+
+            param_line = "{} {} {} ".format(ielem,style,im)
+            style_line = "{} {} {} {} {} {} {} {} {}".format(node[2*i,2*k],node[2*i+2,2*k],node[2*i+2,2*k+2],node[2*i,2*k+2],
+                                                             node[2*i+1,2*k],node[2*i+2,2*k+1],node[2*i+1,2*k+2],node[2*i,2*k+1],
+                                                             node[2*i+1,2*k+1])
+
+            element_lines += [param_line + style_line + "\n"]
+            ielem += 1
+
+elif modelid == 4:
+    for k in range(nz):
+        im = 0
+        for i in range(nx):
+            im = 0
+            if 0 <= k < 1:
+                im = 3
+            if 1 <= k < 2:
+                im = 4
+            if 4 <= k < 6 and (0 <= i < 12 or 37 <= i < 42):
+                im = 2
+            if 6 <= k < 7:
+                im = 1
+
+            style = "2d9solid"
+
+            param_line = "{} {} {} ".format(ielem,style,im)
+            style_line = "{} {} {} {} {} {} {} {} {}".format(node[2*i,2*k],node[2*i+2,2*k],node[2*i+2,2*k+2],node[2*i,2*k+2],
+                                                             node[2*i+1,2*k],node[2*i+2,2*k+1],node[2*i+1,2*k+2],node[2*i,2*k+1],
+                                                             node[2*i+1,2*k+1])
+
+            element_lines += [param_line + style_line + "\n"]
+            ielem += 1
 
 for i in range(nx):
     style = "1d3input"
@@ -74,42 +238,54 @@ for k in range(len(zg)):     #connected element
     element_lines += [param_line + style_line + "\n"]
     ielem += 1
 
+
 nnode = inode       #number of nodes
 nelem = ielem       #number of elements
 
 
 ### Set material ###
 material_lines = []
-material_lines += ["{} {} {} {} {}\n".format(0,"vs_vp_rho",0.0,1500.0,1000.0)]
-material_lines += ["{} {} {} {} {}\n".format(1,"vs_vp_rho",200.0,1500.0,1750.0)]
+if modelid == 0 or modelid == 1:
+    material_lines += ["{} {} {} {} {}\n".format(0,"vs_vp_rho",10.0,1500.0,1750.0)]
+    material_lines += ["{} {} {} {} {}\n".format(1,"vs_vp_rho",200.0,1500.0,1750.0)]
+
+elif modelid == 2 or modelid == 3 or modelid == 4:
+    material_lines += ["{} {} {} {} {}\n".format(0,"vs_vp_rho",0.0,1500.0,1836.7)]     #Fs
+    material_lines += ["{} {} {} {} {}\n".format(1,"vs_vp_rho",135.0,1500.0,1734.7)]   #Ac,N
+    material_lines += ["{} {} {} {} {}\n".format(2,"vs_vp_rho",140.0,1500.0,1836.7)]   #As
+    material_lines += ["{} {} {} {} {}\n".format(3,"vs_vp_rho",140.0,279.8,1734.7)]   #Bs(unliquified)
+    material_lines += ["{} {} {} {} {}\n".format(4,"vs_vp_rho",0.0,1500.0,1734.7)]   #Bs(liquified)
+
 
 nmaterial = len(material_lines)
 
+
 ### Set output ###
 output_node_lines = []
-for i in range(len(xg)):
-    output_node_lines += ["{}\n".format(i)]        #define output nodes
+for i in range(0,nnode):
+    output_node_lines += ["{} \n".format(i)]        #define output nodes
 
 output_element_lines = []
-# for i in range(0,nelem-nx-len(zg)):        #define output elements
-#     output_element_lines += ["{} \n".format(i)]
+for i in range(0,nelem-nx-len(zg)):        #define output elements
+    output_element_lines += ["{} \n".format(i)]
 
 output_nnode = len(output_node_lines)
 output_nelem = len(output_element_lines)
 
 
-with open("mesh.in","w") as f:
+with open("mesh.in","w",newline="\n") as f:
     f.write("{} {} {} {}\n".format(nnode,nelem,nmaterial,dof))
     f.writelines(node_lines)
     f.writelines(element_lines)
     f.writelines(material_lines)
 
-with open("output.in","w") as f:
+with open("output.in","w",newline="\n") as f:
     f.write("{} {}\n".format(output_nnode,output_nelem))
     f.writelines(output_node_lines)
     f.writelines(output_element_lines)
 
-# with open("var.in","w") as f:       #save var, depend on target area
+
+# with open("var.txt","w",newline="\n") as f:       #save var, depend on target area
 #     f.write("{} {}\n".format(modelid,"modelid"))
 #     f.write("{} {} {} {}\n".format(area_x,area_z,"area_x","area_z"))
 #     f.write("{} {} {} {}\n".format(nx,nz,"nx","nz"))

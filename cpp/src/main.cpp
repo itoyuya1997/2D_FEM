@@ -25,9 +25,9 @@ int main() {
   fem.set_output(outputs);
 
   // ----- Define input wave ----- //
-  size_t fsamp = 5000;
+  size_t fsamp = 4000;
   double fp = 1.0;
-  double duration = 4.0/fp;
+  double duration = 9.0/fp;
 
   EV wave_acc;
   auto [tim, dt] = input_wave::linspace(0,duration,(int)(fsamp*duration));
@@ -47,12 +47,21 @@ int main() {
   // ----- Prepare time solver ----- //
   fem.update_init(dt);
 
-  EM output_dispx = EM::Zero(ntim,fem.output_nnode);
-  EM output_dispz = EM::Zero(ntim,fem.output_nnode);
-  EM output_velx = EM::Zero(ntim,fem.output_nnode);
-  EM output_velz = EM::Zero(ntim,fem.output_nnode);
+  EM output_dispx = EM::Zero(1,fem.output_nnode);
+  EM output_dispz = EM::Zero(1,fem.output_nnode);
+  // EM output_velx = EM::Zero(1,fem.output_nnode);
+  // EM output_velz = EM::Zero(1,fem.output_nnode);
+  EM output_strxx = EM::Zero(1,fem.output_nelem);
+  EM output_strzz = EM::Zero(1,fem.output_nelem);
+  EM output_strxz = EM::Zero(1,fem.output_nelem);
 
   // ----- time iteration ----- //
+  std::ofstream f_dispx(output_dir + "x.disp");
+  std::ofstream f_dispz(output_dir + "z.disp");
+  std::ofstream f_strxx(output_dir + "xx.str");
+  std::ofstream f_strzz(output_dir + "zz.str");
+  std::ofstream f_strxz(output_dir + "xz.str");
+  
   EV acc0 = EV::Zero(fem.dof);
   EV vel0 = EV::Zero(fem.dof);
 
@@ -65,33 +74,54 @@ int main() {
 
     for (size_t i = 0 ; i < fem.output_nnode ; i++) {
       Node* node_p = fem.output_nodes_p[i];
-      output_dispx(it,i) = node_p->u(0);
-      output_dispz(it,i) = node_p->u(1);
-      output_velx(it,i) = node_p->v(0);
-      output_velz(it,i) = node_p->v(1);
+      output_dispx(0,i) = node_p->u(0);
+      output_dispz(0,i) = node_p->u(1);
+      // output_velx(0,i) = node_p->v(0);
+      // output_velz(0,i) = node_p->v(1);
+    }
+
+    for (size_t i = 0 ; i < fem.output_nelem ; i++) {
+      Element* element_p = fem.output_elements_p[i];
+      output_strxx(0,i) = element_p->strain(0);
+      output_strzz(0,i) = element_p->strain(1);
+      output_strxz(0,i) = element_p->strain(2);
     }
 
     if (it%500 == 0) {
       std::cout << it << " t= " << it*dt << " ";
-      std::cout << output_dispx(it,5) << " ";
-      std::cout << output_dispz(it,3) << "\n";
+      std::cout << output_dispx(0,5) << " ";
+      std::cout << output_dispz(0,3) << "\n";
     }
+
+  // --- Write output file --- //
+    f_dispx << tim(it);
+    f_dispz << tim(it);
+    for (size_t i = 0 ; i < fem.output_nnode ; i++) {
+      f_dispx << " " << output_dispx(0,i);
+      f_dispz << " " << output_dispz(0,i);
+    }
+    f_dispx << "\n";
+    f_dispz << "\n";
+
+    f_strxx << tim(it);
+    f_strzz << tim(it);
+    f_strxz << tim(it);
+    for (size_t i = 0 ; i < fem.output_nelem ; i++) {
+      f_strxx << " " << output_strxx(0,i);
+      f_strzz << " " << output_strzz(0,i);
+      f_strxz << " " << output_strxz(0,i);
+    }
+    f_strxx << "\n";
+    f_strzz << "\n";
+    f_strxz << "\n";
   }
+
+  f_dispx.close();
+  f_dispz.close();
+  f_strxx.close();
+  f_strzz.close();
+  f_strxz.close();
 
   clock_t end = clock();
   std::cout << "elapsed_time: " << (double)(end - start) / CLOCKS_PER_SEC << "[sec]\n";
-
-  // --- Write output file --- //
-  std::ofstream f(output_dir + "z0_vs00.disp");
-  for (size_t it = 0 ; it < ntim ; it++) {
-    f << tim(it) ;
-    f << " " << output_dispx(it,5);
-    f << " " << output_dispz(it,3);
-    // for (size_t i = 0 ; i < fem.output_nnode ; i++) {
-    //   f << " " << output_dispz(it,i);
-    // }
-    f << "\n";
-  }
-  f.close();
-
 }
